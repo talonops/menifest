@@ -6,3 +6,9 @@ on my own hardware/vps, tediously setting up firewall rules, ssh keys, non-root 
 so I decided to create this simple project, and work on it at least 1 hr everyday, until I complete the
 MVP I will write later. Then if I want to continue working on it I will. I will also make sure to
 document my journey, since I am making this in rust and don't know it lol.
+
+## MVP
+So I should be able to create a `control center` vps, and it connects to other `vps nodes`,
+and it can configure them with ssh keys, firewall, and setup cloudflare filtering. Allows you to
+link github repo, or drag and drop your program. Also a ability to easily deploy any docker container
+and setup a reverse proxy.
