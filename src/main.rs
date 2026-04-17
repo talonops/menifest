@@ -4,7 +4,7 @@ use axum::{Json, Router, http::StatusCode, response::IntoResponse};
 use rusqlite::Connection;
 use serde_json::json;
 
-/* 
+/*
 #[derive(Debug)]
 enum ApiError {
     NotFound,
@@ -38,7 +38,7 @@ impl IntoResponse for ApiError {
 #[tokio::main]
 async fn main() {
     let conn = Connection::open("./main.db").expect("failed to connect to the database");
-        
+    
     let db = Arc::new(Mutex::new(conn));
 
     let router = Router::new()
