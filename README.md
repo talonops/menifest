@@ -12,3 +12,8 @@ So I should be able to create a `control center` vps, and it connects to other `
 and it can configure them with ssh keys, firewall, and setup cloudflare filtering. Allows you to
 link github repo, or drag and drop your program. Also a ability to easily deploy any docker container
 and setup a reverse proxy.
+
+`4/17/26`
+Alr got back from surgery, but as yk I am guided by god him self, and he has made me this ruthless human that can handle everything, not because of my strength, but because of gods.
+So anyways the first step would be let's crack down the project setup, and ssh management, that would be the first step. So for now we won't have users, just the ability to create projects in the database.
+Or not even projects for now, just a way to add a vps. So what are the methods to do this will ask AI.

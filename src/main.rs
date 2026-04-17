@@ -4,6 +4,8 @@ use axum::{Json, Router, http::StatusCode, response::IntoResponse};
 use rusqlite::Connection;
 use serde_json::json;
 
+mod ssh;
+
 /*
 #[derive(Debug)]
 enum ApiError {
@@ -35,8 +37,16 @@ impl IntoResponse for ApiError {
 }
 */
 
+
+
 #[tokio::main]
 async fn main() {
+    ssh::login()
+    .await;
+    
+    
+    /* 
+
     let conn = Connection::open("./main.db").expect("failed to connect to the database");
     
     let db = Arc::new(Mutex::new(conn));
@@ -53,4 +63,5 @@ async fn main() {
     axum::serve(listener, router)
         .await
         .expect("failed to start server");
+*/
 }
