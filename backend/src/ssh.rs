@@ -1,6 +1,8 @@
 use russh::client::{Config, Handler};
 use std::sync::Arc;
 
+use crate::routes::server::ConnectRequest;
+
 struct Client;
 
 impl Handler for Client {
@@ -13,53 +15,27 @@ impl Handler for Client {
         &mut self,
         _server_public_key: &russh::keys::ssh_key::PublicKey,
     ) -> Result<bool, Self::Error> {
-        println!("{:?}", _server_public_key.to_string());
+        //println!("{:?}", _server_public_key.to_string());
         Ok(true)
     }
 }
 
-pub async fn login() {
+pub async fn connect(auth: ConnectRequest) -> Result<(), String> {
     let config = Arc::new(Config::default());
     let client = Client {};
 
-    let mut handle = russh::client::connect(config, "192.168.64.2:22", client)
+    let mut handle = russh::client::connect(config, format!("{}:{}", auth.ip, auth.port), client)
         .await
-        .expect("error connecting to ssh server");
+        .map_err(|e| format!("failed to connect to SSH server: {}", e))?;
 
     let res = handle
-        .authenticate_password("ankit", "ankit")
+        .authenticate_password(auth.username, auth.cred)
         .await
-        .expect("error authenticating");
+        .map_err(|e| format!("failed to authenticate with SSH server: {}", e))?;
 
     if !res.success() {
-        panic!("wrong credentials")
+        return Err("authentication failed: wrong credentials".to_string());
     }
 
-    let mut channel = handle
-        .channel_open_session()
-        .await
-        .expect("error opening a channel");
-
-    channel
-        .exec(true, "whoami")
-        .await
-        .expect("error executing command");
-    
-
-    while let Some(msg) = channel.wait().await {
-        match msg {
-            russh::ChannelMsg::Data { data } => {
-                println!("{:?}", String::from_utf8_lossy(&data));
-            }
-            russh::ChannelMsg::ExitStatus { exit_status } => {
-                println!("Error code: {:?}", exit_status);
-            }
-            _ => {}
-        }
-    }
+    Ok(())
 }
-
-/*
-connect to server successfully
-Once I am back learn tokio a bit more
-*/

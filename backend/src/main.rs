@@ -1,62 +1,23 @@
-use std::{sync::{Arc, Mutex}};
+use std::sync::Arc;
 
-use axum::{Json, Router, routing::get};
+use axum::{Router, routing::post};
 use rusqlite::Connection;
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 
-/*
-#[derive(Debug)]
-enum ApiError {
-    NotFound,
-    InvalidInput(String),
-    InternalError,
-}
+use tokio::sync::Mutex;
 
-impl IntoResponse for ApiError {
-    fn into_response(self) -> axum::response::Response {
-        let (status, error_message) = match self {
-            ApiError::NotFound => (
-                StatusCode::NOT_FOUND, "Data not found".to_string()
-            ),
-            ApiError::InvalidInput(msg) => (
-                StatusCode::BAD_REQUEST, msg
-            ),
-            ApiError::InternalError => (
-                StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string()
-            )
-        };
-
-        let body = Json(json!({
-            "error": error_message
-        }));
-
-        (status, body).into_response()
-    }
-}
-*/
-
-#[derive(Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../frontend/src/bindings/")]
-struct User {
-    id: u64,
-    email: String
-}
-
-async fn get_user() -> Json<User> {
-    Json(User{id: 1, email:"ankit@proxyon.io!".into()})
-}
-
+mod routes;
+mod ssh;
 
 #[tokio::main]
 async fn main() {
     let conn = Connection::open("./main.db").expect("failed to connect to the database");
-    
+
     let db = Arc::new(Mutex::new(conn));
 
+
     let router = Router::new()
-    .route("/api/user", get(get_user))
-    .with_state(db);
+        .route("/server", post(routes::server::connect_server))
+        .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
@@ -67,5 +28,4 @@ async fn main() {
     axum::serve(listener, router)
         .await
         .expect("failed to start server");
-
 }
