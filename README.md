@@ -14,9 +14,12 @@ link github repo, or drag and drop your program. Also a ability to easily deploy
 and setup a reverse proxy.
 
 `4/17/26`
+
 First step would be let's crack down the project setup, and ssh management, that would be the first step. So for now we won't have users, just the ability to create projects in the database.
 Or not even projects for now, just a way to add a vps. So what are the methods to do this will ask AI.
 
 `4/18/26`
+
 Ig I kinda need some sorta UI :D
 Let's figure out how to create a reactjs app, and connect it to rust.
+Figured we need a agent to run on each server with a heartbeat to communicate with backend
