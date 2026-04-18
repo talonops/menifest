@@ -1,0 +1,21 @@
+{
+  "name": "menifest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c yellow,cyan \"pnpm dev:backend\" \"pnpm dev:frontend\"",
+    "dev:backend": "cd backend && cargo watch -x test -x run",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "cd backend && cargo build --release",
+    "gen:types": "cd backend && cargo test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.18.3",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

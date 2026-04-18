@@ -1,10 +1,9 @@
 use std::{sync::{Arc, Mutex}};
 
-use axum::{Json, Router, http::StatusCode, response::IntoResponse};
+use axum::{Json, Router, routing::get};
 use rusqlite::Connection;
-use serde_json::json;
-
-mod ssh;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 /*
 #[derive(Debug)]
@@ -37,21 +36,26 @@ impl IntoResponse for ApiError {
 }
 */
 
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/")]
+struct User {
+    id: u64,
+    email: String
+}
+
+async fn get_user() -> Json<User> {
+    Json(User{id: 1, email:"ankit@proxyon.io!".into()})
+}
 
 
 #[tokio::main]
 async fn main() {
-    ssh::login()
-    .await;
-    
-    
-    /* 
-
     let conn = Connection::open("./main.db").expect("failed to connect to the database");
     
     let db = Arc::new(Mutex::new(conn));
 
     let router = Router::new()
+    .route("/api/user", get(get_user))
     .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
@@ -63,5 +67,5 @@ async fn main() {
     axum::serve(listener, router)
         .await
         .expect("failed to start server");
-*/
+
 }
