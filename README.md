@@ -24,4 +24,8 @@ Or not even projects for now, just a way to add a vps. So what are the methods t
 
 Ig I kinda need some sorta UI :D
 Let's figure out how to create a reactjs app, and connect it to rust.
-Figured we need a agent to run on each server with a heartbeat to communicate with backend
+Figured we need a agent to run on each server with a heartbeat to communicate with backend.
+
+`4/19/26`
+Let's lock in!
+So need to figure out the heartbeat now. Also make the main system a server node as well, so it works without needing to connect another server.
