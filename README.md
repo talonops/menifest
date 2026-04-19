@@ -1,5 +1,7 @@
 # menifest | Your production infrastructure in just a few clicks.
 
+![preview](preview.png)
+
 ## The problem this is solving?
 So I kept running into the same problem again and again when trying to deploy something to production
 on my own hardware/vps, tediously setting up firewall rules, ssh keys, non-root user, nginx, deployment
