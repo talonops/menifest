@@ -1,12 +1,14 @@
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use axum::{
     Router,
+    response::{Sse, sse::{Event, KeepAlive}},
     routing::{get, post},
 };
+use futures::{Stream, stream};
 use rusqlite::Connection;
-
 use tokio::sync::Mutex;
+use tokio_stream::StreamExt;
 
 mod routes;
 mod ssh;
@@ -59,6 +61,7 @@ async fn main() {
         .route("/servers", get(routes::server::get_all))
         .route("/server", post(routes::server::connect_server))
         .route("/heartbeat", post(routes::server::heartbeat))
+        .route("/stream", get(stream_handler))        
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
@@ -71,3 +74,12 @@ async fn main() {
         .await
         .expect("failed to start server");
 }
+
+async fn stream_handler() -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let stream = stream::repeat_with(|| Event::default().data("hi!"))
+        .map(Ok)
+        .throttle(Duration::from_secs(1));
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
