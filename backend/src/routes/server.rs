@@ -55,11 +55,11 @@ pub async fn heartbeat(
     }
 
     let now = chrono::Utc::now().timestamp();
-    if conn
+    if let Err(e) = conn
         .execute(
             "
             UPDATE servers SET
-                last_heartbeat = ?
+                last_heartbeat = ?,
                 cpu = ?,
                 ram_used = ?,
                 ram_total = ?,
@@ -80,8 +80,8 @@ pub async fn heartbeat(
                 &body.vps_id,
             ),
         )
-        .is_err()
     {
+        eprintln!("error updating server: {}", e);
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
 
