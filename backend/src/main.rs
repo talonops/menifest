@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use axum::{Router, routing::{get, post}};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use rusqlite::Connection;
 
 use tokio::sync::Mutex;
@@ -11,9 +14,8 @@ mod structs;
 
 #[tokio::main]
 async fn main() {
-    //let conn = Connection::open("./main.db").expect("failed to connect to the database");
-    let conn = Connection::open_in_memory().expect("failed to open the database");
-
+    let conn = Connection::open("./main.db").expect("failed to connect to the database");
+    
     conn.execute(
         "
         CREATE TABLE IF NOT EXISTS servers (
@@ -35,6 +37,21 @@ async fn main() {
         (),
     )
     .expect("failed to create servers table");
+
+    conn.execute(
+        "
+        INSERT INTO servers (id, name, token_hash, last_heartbeat, created_at)
+        VALUES (
+            'vps_demo123',
+            'Demo Server',
+            '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
+            strftime('%s', 'now'),
+            strftime('%s', 'now')
+        )
+        ",
+        (),
+    )
+    .expect("failed to insert test server");
 
     let db = Arc::new(Mutex::new(conn));
 

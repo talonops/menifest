@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use std::sync::Arc;
 
 use axum::{Json, extract::State, http::StatusCode};
 use rusqlite::Connection;
@@ -7,10 +7,7 @@ use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
 use ts_rs::TS;
 
-use crate::{
-    ssh,
-    structs::{ServerPublic},
-};
+use crate::{ssh, structs::ServerPublic};
 
 #[derive(Serialize, Deserialize, TS, Debug)]
 #[ts(export)]
@@ -23,7 +20,7 @@ pub struct ConnectRequest {
 }
 
 pub async fn connect_server(
-    State(db): State<Arc<Mutex<Connection>>>,
+    State(_db): State<Arc<Mutex<Connection>>>,
     Json(body): Json<ConnectRequest>,
 ) -> StatusCode {
     match ssh::connect(body).await {
@@ -102,7 +99,7 @@ pub async fn get_all(
     SELECT 
         id,
         name,
-        last_heart_beat,
+        last_heartbeat,
         created_at,
         cpu,
         ram_used,
@@ -113,14 +110,17 @@ pub async fn get_all(
         net_tx
     FROM servers",
         )
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let rows = stmt
         .query_map([], |row| {
             Ok(ServerPublic {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                last_heart_beat: row.get(2)?,
+                last_heartbeat: row.get(2)?,
                 created_at: row.get(3)?,
                 cpu: row.get(4)?,
                 ram_used: row.get(5)?,
@@ -131,7 +131,10 @@ pub async fn get_all(
                 net_tx: row.get(10)?,
             })
         })
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let servers: Vec<ServerPublic> = rows.filter_map(|r| r.ok()).collect();
 
