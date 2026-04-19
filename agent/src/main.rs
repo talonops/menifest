@@ -1,25 +1,37 @@
+use serde::Deserialize;
 use std::{path::Path, thread::sleep, time::Duration};
 use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, Networks, RefreshKind, System};
 
-fn main() {
+#[derive(Deserialize)]
+struct Config {
+    vps_id: String,
+    token: String,
+    backend_url: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let text = std::fs::read_to_string("config.toml").expect("config.toml not found");
+    let config: Config = toml::from_str(&text).expect("config.toml is malformed");
+
     let mut sys = System::new_with_specifics(
         RefreshKind::nothing()
             .with_cpu(CpuRefreshKind::everything())
             .with_memory(MemoryRefreshKind::everything()),
     );
-
     let mut disks = Disks::new_with_refreshed_list();
     let mut networks = Networks::new_with_refreshed_list();
 
-    let gb = 1024 * 1024 * 1024;
-    let mb = 1024 * 1024;
+    let client = reqwest::Client::new();
 
-    // prime the cpu so first reading isn't 0
     sys.refresh_cpu_usage();
-    sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+    tokio::time::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL).await;
+
+    let url = format!("{}/heartbeat", config.backend_url);
+    let interval_secs = 5;
 
     loop {
-        sleep(Duration::from_secs(5));
+        tokio::time::sleep(Duration::from_secs(interval_secs)).await;
 
         sys.refresh_cpu_usage();
         sys.refresh_memory();
@@ -31,30 +43,31 @@ fn main() {
         for (name, data) in &networks {
             if name == "lo" {
                 continue;
-            } // Skip loopback
+            }
             rx += data.received();
             tx += data.transmitted();
         }
-        let cpu = sys.global_cpu_usage();
-        let ram_used = sys.used_memory();
-        let ram_total = sys.total_memory();
 
         let root = disks
             .iter()
             .find(|d| d.mount_point() == Path::new("/"))
-            .expect("no root disk found??");
-        let disk_used = root.total_space() - root.available_space();
-        let disk_total = root.total_space();
+            .expect("no root disk found");
 
-        println!(
-            "CPU: {:.1}% | RAM: {} GB / {} GB | Disk: {} GB / {} GB | {}MB/s Received, {}MB/s Transmitted",
-            cpu,
-            ram_used / gb,
-            ram_total / gb,
-            disk_used / gb,
-            disk_total / gb,
-            rx / 5 / mb,
-            tx / 5 / mb
-        );
+        let body = shared::HeartbeatRequest {
+            vps_id: config.vps_id.clone(),
+            token: config.token.clone(),
+            cpu: sys.global_cpu_usage(),
+            ram_used: sys.used_memory(),
+            ram_total: sys.total_memory(),
+            disk_used: root.total_space() - root.available_space(),
+            disk_total: root.total_space(),
+            net_rx: rx / interval_secs,
+            net_tx: tx / interval_secs,
+        };
+
+        match client.post(&url).json(&body).send().await {
+            Ok(res) => println!("✅ {}", res.status()),
+            Err(e) => eprintln!("❌ {}", e),
+        }
     }
 }

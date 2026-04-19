@@ -29,7 +29,7 @@ async fn main() {
 
     let router = Router::new()
         .route("/server", post(routes::server::connect_server))
-        .route("/agent/heartbeat", post(routes::server::heartbeat))
+        .route("/heartbeat", post(routes::server::heartbeat))
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")

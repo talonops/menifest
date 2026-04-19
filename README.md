@@ -29,3 +29,4 @@ Figured we need a agent to run on each server with a heartbeat to communicate wi
 `4/19/26`
 Let's lock in!
 So need to figure out the heartbeat now. Also make the main system a server node as well, so it works without needing to connect another server.
+Alr now got a heartbeat mvp, need to figure out how to get stuff on the agent and make it auto run mhmm.
