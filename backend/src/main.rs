@@ -40,7 +40,7 @@ async fn main() {
 
     conn.execute(
         "
-        INSERT INTO servers (id, name, token_hash, last_heartbeat, created_at)
+        INSERT OR IGNORE INTO servers (id, name, token_hash, last_heartbeat, created_at)
         VALUES (
             'vps_demo123',
             'Demo Server',
