@@ -1327,6 +1327,7 @@ name = "manifest"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "chrono",
  "hex",
  "rand 0.10.1",
  "rusqlite",

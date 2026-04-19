@@ -22,18 +22,21 @@ pub struct ConnectRequest {
 pub async fn connect_server(
     State(db): State<Arc<Mutex<Connection>>>,
     Json(body): Json<ConnectRequest>,
-) -> Result<String, (StatusCode, String)> {
-    ssh::connect(body)
-        .await
-        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+) -> StatusCode {
 
-    Ok("connected".to_string())
+    match ssh::connect(body).await {
+        Ok(_) => StatusCode::OK,
+        Err(e) => {
+            // TODO: log properly
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
 }
 
 pub async fn heartbeat(
     State(db): State<Arc<Mutex<Connection>>>,
     Json(body): Json<shared::HeartbeatRequest>,
-) {
+) -> StatusCode {
     let mut hasher = Sha256::new();
     hasher.update(body.token.as_bytes());
     let hashed_token = hex::encode(hasher.finalize());
@@ -48,9 +51,20 @@ pub async fn heartbeat(
         )
         .unwrap_or(false);
 
-    if exists {
-        println!("exists")
-    } else {
-        println!("does not exisat")
+    if !exists {
+        return StatusCode::UNAUTHORIZED;
     }
+
+    let now = chrono::Utc::now().timestamp();
+    if conn
+        .execute(
+            "UPDATE servers SET last_heartbeat = ? WHERE id = ?",
+            (now, &body.vps_id),
+        )
+        .is_err()
+    {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+
+    StatusCode::OK
 }
