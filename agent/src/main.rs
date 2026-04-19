@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{path::Path, thread::sleep, time::Duration};
+use std::{path::Path, time::Duration};
 use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, Networks, RefreshKind, System};
 
 #[derive(Deserialize)]
@@ -57,12 +57,12 @@ async fn main() {
             vps_id: config.vps_id.clone(),
             token: config.token.clone(),
             cpu: sys.global_cpu_usage(),
-            ram_used: sys.used_memory(),
-            ram_total: sys.total_memory(),
-            disk_used: root.total_space() - root.available_space(),
-            disk_total: root.total_space(),
-            net_rx: rx / interval_secs,
-            net_tx: tx / interval_secs,
+            ram_used: sys.used_memory() as i64,
+            ram_total: sys.total_memory() as i64,
+            disk_used: (root.total_space() - root.available_space()) as i64,
+            disk_total: root.total_space() as i64,
+            net_rx: (rx / interval_secs) as i64,
+            net_tx: (tx / interval_secs) as i64,
         };
 
         match client.post(&url).json(&body).send().await {

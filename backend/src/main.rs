@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{Router, routing::post};
+use axum::{Router, routing::{get, post}};
 use rusqlite::Connection;
 
 use tokio::sync::Mutex;
@@ -11,16 +11,27 @@ mod structs;
 
 #[tokio::main]
 async fn main() {
-    let conn = Connection::open("./main.db").expect("failed to connect to the database");
+    //let conn = Connection::open("./main.db").expect("failed to connect to the database");
+    let conn = Connection::open_in_memory().expect("failed to open the database");
 
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS servers (
-            id  TEXT PRIMARY KEY,  
+        "
+        CREATE TABLE IF NOT EXISTS servers (
+            id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             token_hash TEXT NOT NULL,
             last_heartbeat INTEGER,
-            created_at INTEGER NOT NULL
-         )",
+            created_at INTEGER NOT NULL,
+            
+            -- stats (latest values, overwritten every heartbeat)
+            cpu REAL,
+            ram_used INTEGER,
+            ram_total INTEGER,
+            disk_used INTEGER,
+            disk_total INTEGER,
+            net_rx INTEGER,
+            net_tx INTEGER
+        ) STRICT",
         (),
     )
     .expect("failed to create servers table");
@@ -28,6 +39,7 @@ async fn main() {
     let db = Arc::new(Mutex::new(conn));
 
     let router = Router::new()
+        .route("/servers", get(routes::server::get_all))
         .route("/server", post(routes::server::connect_server))
         .route("/heartbeat", post(routes::server::heartbeat))
         .with_state(db);

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc};
 
 use axum::{Json, extract::State, http::StatusCode};
 use rusqlite::Connection;
@@ -7,7 +7,10 @@ use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
 use ts_rs::TS;
 
-use crate::ssh;
+use crate::{
+    ssh,
+    structs::{ServerPublic},
+};
 
 #[derive(Serialize, Deserialize, TS, Debug)]
 #[ts(export)]
@@ -23,7 +26,6 @@ pub async fn connect_server(
     State(db): State<Arc<Mutex<Connection>>>,
     Json(body): Json<ConnectRequest>,
 ) -> StatusCode {
-
     match ssh::connect(body).await {
         Ok(_) => StatusCode::OK,
         Err(e) => {
@@ -58,8 +60,28 @@ pub async fn heartbeat(
     let now = chrono::Utc::now().timestamp();
     if conn
         .execute(
-            "UPDATE servers SET last_heartbeat = ? WHERE id = ?",
-            (now, &body.vps_id),
+            "
+            UPDATE servers SET
+                last_heartbeat = ?
+                cpu = ?,
+                ram_used = ?,
+                ram_total = ?,
+                disk_used = ?,
+                disk_total = ?,
+                net_rx = ?,
+                net_tx = ?
+            WHERE id = ?",
+            (
+                now,
+                &body.cpu,
+                &body.ram_used,
+                &body.ram_total,
+                &body.disk_used,
+                &body.disk_total,
+                &body.net_rx,
+                &body.net_tx,
+                &body.vps_id,
+            ),
         )
         .is_err()
     {
@@ -67,4 +89,51 @@ pub async fn heartbeat(
     }
 
     StatusCode::OK
+}
+
+pub async fn get_all(
+    State(db): State<Arc<Mutex<Connection>>>,
+) -> Result<Json<Vec<ServerPublic>>, StatusCode> {
+    let conn = db.lock().await;
+
+    let mut stmt = conn
+        .prepare(
+            "
+    SELECT 
+        id,
+        name,
+        last_heart_beat,
+        created_at,
+        cpu,
+        ram_used,
+        ram_total,
+        disk_used,
+        disk_total,
+        net_rx,
+        net_tx
+    FROM servers",
+        )
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(ServerPublic {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                last_heart_beat: row.get(2)?,
+                created_at: row.get(3)?,
+                cpu: row.get(4)?,
+                ram_used: row.get(5)?,
+                ram_total: row.get(6)?,
+                disk_used: row.get(7)?,
+                disk_total: row.get(8)?,
+                net_rx: row.get(9)?,
+                net_tx: row.get(10)?,
+            })
+        })
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let servers: Vec<ServerPublic> = rows.filter_map(|r| r.ok()).collect();
+
+    Ok(Json(servers))
 }
