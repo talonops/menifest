@@ -1,14 +1,16 @@
 use std::{convert::Infallible, sync::Arc, time::Duration};
 
 use axum::{
-    Router,
-    response::{Sse, sse::{Event, KeepAlive}},
+    Json, Router,
+    response::{
+        Sse,
+        sse::{Event, KeepAlive},
+    },
     routing::{get, post},
 };
-use futures::{Stream, stream};
+use futures::Stream;
 use rusqlite::Connection;
 use tokio::sync::Mutex;
-use tokio_stream::StreamExt;
 
 mod routes;
 mod ssh;
@@ -17,7 +19,7 @@ mod structs;
 #[tokio::main]
 async fn main() {
     let conn = Connection::open("./main.db").expect("failed to connect to the database");
-    
+
     conn.execute(
         "
         CREATE TABLE IF NOT EXISTS servers (
@@ -61,7 +63,7 @@ async fn main() {
         .route("/servers", get(routes::server::get_all))
         .route("/server", post(routes::server::connect_server))
         .route("/heartbeat", post(routes::server::heartbeat))
-        .route("/stream", get(stream_handler))        
+        .route("/stream", get(stream_handler))
         .with_state(db);
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
@@ -76,10 +78,12 @@ async fn main() {
 }
 
 async fn stream_handler() -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let stream = stream::repeat_with(|| Event::default().data("hi!"))
-        .map(Ok)
-        .throttle(Duration::from_secs(1));
+    let stream = async_stream::stream! {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            yield Ok(Event::default().data(serde_json::json!({"message": "test data", "timestamp": std::time::SystemTime::now()}).to_string()));
+        }
+    };
 
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
-

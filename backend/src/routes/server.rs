@@ -1,6 +1,15 @@
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc, time::Duration};
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::State,
+    http::StatusCode,
+    response::{
+        Sse,
+        sse::{Event, KeepAlive},
+    },
+};
+use futures::Stream;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -55,9 +64,8 @@ pub async fn heartbeat(
     }
 
     let now = chrono::Utc::now().timestamp();
-    if let Err(e) = conn
-        .execute(
-            "
+    if let Err(e) = conn.execute(
+        "
             UPDATE servers SET
                 last_heartbeat = ?,
                 cpu = ?,
@@ -68,19 +76,18 @@ pub async fn heartbeat(
                 net_rx = ?,
                 net_tx = ?
             WHERE id = ?",
-            (
-                now,
-                &body.cpu,
-                &body.ram_used,
-                &body.ram_total,
-                &body.disk_used,
-                &body.disk_total,
-                &body.net_rx,
-                &body.net_tx,
-                &body.vps_id,
-            ),
-        )
-    {
+        (
+            now,
+            &body.cpu,
+            &body.ram_used,
+            &body.ram_total,
+            &body.disk_used,
+            &body.disk_total,
+            &body.net_rx,
+            &body.net_tx,
+            &body.vps_id,
+        ),
+    ) {
         eprintln!("error updating server: {}", e);
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
@@ -139,4 +146,17 @@ pub async fn get_all(
     let servers: Vec<ServerPublic> = rows.filter_map(|r| r.ok()).collect();
 
     Ok(Json(servers))
+}
+
+pub async fn servers_stream(
+    State(db): State<Arc<Mutex<Connection>>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let stream = async_stream::stream! {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            yield Ok(Event::default().data(serde_json::json!({"message": "test data", "timestamp": std::time::SystemTime::now()}).to_string()));
+        }
+    };
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
